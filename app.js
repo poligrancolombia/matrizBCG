@@ -12,10 +12,14 @@ const els = {
   gateSubmit: document.getElementById("gate-submit"),
   app: document.getElementById("app"),
   segmento: document.getElementById("segmento"),
+  sectorGraficos: document.getElementById("sector-graficos"),
   meta: document.getElementById("meta"),
   chart: document.getElementById("chart"),
-  slicerSede: document.getElementById("slicer-sede"),
-  slicerNivel: document.getElementById("slicer-nivel"),
+  filtroSede: document.getElementById("filtro-sede"),
+  filtroNivel: document.getElementById("filtro-nivel"),
+  filtroSector: document.getElementById("filtro-sector"),
+  togglePoli: document.getElementById("toggle-poli"),
+  toggleMercado: document.getElementById("toggle-mercado"),
   tabla: document.getElementById("tabla-datos"),
   metaDatos: document.getElementById("meta-datos"),
   tabBtns: [...document.querySelectorAll(".tab-btn")],
@@ -25,7 +29,7 @@ const els = {
 let rows = [];
 let chart = null;
 let anios = [];
-let filtros = { sede: new Set(), nivel: new Set() };
+let expandido = { poli: false, mercado: false };
 
 function pct(x) {
   return x == null ? "s/d" : `${(x * 100).toFixed(1)}%`;
@@ -56,17 +60,19 @@ els.tabBtns.forEach((b) => b.addEventListener("click", () => activarTab(b.datase
 
 // ---------- Gráficos ----------
 
-function renderChart(segmentoActivo) {
-  const datos = rows.filter(
-    (r) => r.segmento === segmentoActivo && r.share_mercado != null && r.crecimiento_mercado != null
-  );
-  const maxTamano = Math.max(1, ...datos.map((r) => r.matriculas_mercado[r.anio_base]));
+function renderChart(segmentoActivo, sector) {
+  const datos = rows
+    .filter((r) => r.segmento === segmentoActivo)
+    .map((r) => ({ r, m: r.por_sector[sector] }))
+    .filter(({ m }) => m.share_mercado != null && m.crecimiento_mercado != null);
 
-  const puntos = datos.map((r) => ({
-    value: [r.share_mercado, r.crecimiento_mercado, r.matriculas_mercado[r.anio_base]],
+  const maxTamano = Math.max(1, ...datos.map(({ m }) => m.matriculas_mercado[String(rows[0]?.anio_base)] ?? 0));
+
+  const puntos = datos.map(({ r, m }) => ({
+    value: [m.share_mercado, m.crecimiento_mercado, m.matriculas_mercado[r.anio_base]],
     name: r.programa_academico,
     itemStyle: { color: "#0f385a" },
-    raw: r,
+    raw: { r, m },
   }));
 
   chart.setOption(
@@ -74,14 +80,14 @@ function renderChart(segmentoActivo) {
       grid: { left: 70, right: 30, top: 30, bottom: 60 },
       tooltip: {
         formatter: (p) => {
-          const r = p.data.raw;
+          const { r, m } = p.data.raw;
           return `<b>${r.programa_academico}</b><br/>
-            Segmento: ${r.segmento}<br/>
-            Cuota de mercado: ${pct(r.share_mercado)}<br/>
-            Crecimiento mercado: ${pct(r.crecimiento_mercado)}<br/>
-            Matrículas mercado (${r.anio_base}): ${num(r.matriculas_mercado[r.anio_base])}<br/>
+            Segmento: ${r.segmento} · Sector: ${sector}<br/>
+            Cuota de mercado: ${pct(m.share_mercado)}<br/>
+            Crecimiento mercado: ${pct(m.crecimiento_mercado)}<br/>
+            Matrículas mercado (${r.anio_base}): ${num(m.matriculas_mercado[r.anio_base])}<br/>
             Matrículas Poli (${r.anio_base}): ${num(r.matriculas_poli[r.anio_base])}<br/>
-            Competidores homologados: ${num(r.num_competidores)}`;
+            Competidores homologados: ${num(m.num_competidores)}`;
         },
       },
       xAxis: {
@@ -119,98 +125,65 @@ function renderChart(segmentoActivo) {
     true
   );
 
-  els.meta.textContent = `${datos.length} programa(s) en "${segmentoActivo}" · año base ${datos[0]?.anio_base ?? "-"}`;
+  els.meta.textContent = `${datos.length} programa(s) en "${segmentoActivo}" · sector ${sector} · año base ${rows[0]?.anio_base ?? "-"}`;
 }
 
-els.segmento.addEventListener("change", () => renderChart(els.segmento.value));
-
-// ---------- Datos: filtros desplegables (estilo slicer de Excel) ----------
-
-const dropdownPanels = [];
-
-function construirDropdown(container, titulo, opciones, seleccionados) {
-  container.innerHTML = "";
-
-  const btn = document.createElement("button");
-  btn.type = "button";
-  btn.className =
-    "flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 hover:border-slate-300";
-
-  const panel = document.createElement("div");
-  panel.className =
-    "dropdown-panel absolute left-0 top-full z-10 mt-1 hidden w-48 rounded-xl border border-slate-200 bg-white p-2 shadow-lg";
-
-  function actualizarBoton() {
-    btn.innerHTML = `${titulo} <span class="text-slate-400">(${seleccionados.size}/${opciones.length})</span> <span class="text-slate-400">▾</span>`;
-  }
-
-  opciones.forEach((op) => {
-    const label = document.createElement("label");
-    label.className = "flex items-center gap-2 rounded-lg px-2 py-1.5 text-xs text-slate-600 hover:bg-slate-50";
-    const chk = document.createElement("input");
-    chk.type = "checkbox";
-    chk.checked = seleccionados.has(op);
-    chk.className = "accent-slate-900";
-    chk.addEventListener("change", () => {
-      if (chk.checked) seleccionados.add(op);
-      else seleccionados.delete(op);
-      actualizarBoton();
-      renderTabla();
-    });
-    label.appendChild(chk);
-    label.appendChild(document.createTextNode(op));
-    panel.appendChild(label);
-  });
-
-  btn.addEventListener("click", () => {
-    const abierto = !panel.classList.contains("hidden");
-    dropdownPanels.forEach((p) => p.classList.add("hidden"));
-    panel.classList.toggle("hidden", abierto);
-  });
-
-  actualizarBoton();
-  container.appendChild(btn);
-  container.appendChild(panel);
-  dropdownPanels.push(panel);
+function rerenderChart() {
+  renderChart(els.segmento.value, els.sectorGraficos.value);
 }
 
-document.addEventListener("click", (e) => {
-  dropdownPanels.forEach((panel) => {
-    if (!panel.parentElement.contains(e.target)) panel.classList.add("hidden");
-  });
+els.segmento.addEventListener("change", rerenderChart);
+els.sectorGraficos.addEventListener("change", rerenderChart);
+
+// ---------- Datos ----------
+
+els.filtroSede.addEventListener("change", renderTabla);
+els.filtroNivel.addEventListener("change", renderTabla);
+els.filtroSector.addEventListener("change", renderTabla);
+
+function actualizarToggleBtn(btn, expandidoFlag, etiqueta) {
+  btn.textContent = `${expandidoFlag ? "▾" : "▸"} ${etiqueta}`;
+  btn.classList.toggle("bg-sky-100", expandidoFlag && btn === els.togglePoli);
+  btn.classList.toggle("bg-slate-200", expandidoFlag && btn === els.toggleMercado);
+}
+
+els.togglePoli.addEventListener("click", () => {
+  expandido.poli = !expandido.poli;
+  renderTabla();
 });
-
-function construirSlicers() {
-  const sedes = [...new Set(rows.map((r) => r.sede))].sort();
-  const niveles = [...new Set(rows.map((r) => r.nivel_academico))].sort();
-  filtros.sede = new Set(sedes);
-  filtros.nivel = new Set(niveles);
-  dropdownPanels.length = 0;
-
-  construirDropdown(els.slicerSede, "Sede", sedes, filtros.sede);
-  construirDropdown(els.slicerNivel, "Nivel", niveles, filtros.nivel);
-}
+els.toggleMercado.addEventListener("click", () => {
+  expandido.mercado = !expandido.mercado;
+  renderTabla();
+});
 
 function th(text, extraClass = "") {
   return `<th class="border-b border-slate-100 px-2.5 py-2 text-left font-semibold text-slate-500 ${extraClass}">${text}</th>`;
 }
 
 function renderTabla() {
-  const datos = rows.filter((r) => filtros.sede.has(r.sede) && filtros.nivel.has(r.nivel_academico));
+  actualizarToggleBtn(els.togglePoli, expandido.poli, "Histórico Poli");
+  actualizarToggleBtn(els.toggleMercado, expandido.mercado, "Histórico Mercado");
 
-  const headYears1 = anios.map(() => "").join("");
+  const sede = els.filtroSede.value;
+  const nivel = els.filtroNivel.value;
+  const sector = els.filtroSector.value;
+  const datos = rows.filter((r) => (!sede || r.sede === sede) && (!nivel || r.nivel_academico === nivel));
+
+  const aniosPoli = expandido.poli ? anios : [];
+  const aniosMercado = expandido.mercado ? anios : [];
+
   const thead = `
     <thead class="sticky top-0 bg-slate-50">
       <tr>
         ${th("", "")}${th("", "")}${th("", "")}${th("", "")}
-        <th colspan="${anios.length}" class="border-b border-slate-100 bg-sky-50 px-2.5 py-1.5 text-center font-bold text-sky-700">Matrículas nuevas Poli</th>
-        <th colspan="${anios.length}" class="border-b border-slate-100 bg-slate-100 px-2.5 py-1.5 text-center font-bold text-slate-600">Matrículas nuevas mercado SNIES</th>
+        <th colspan="${Math.max(aniosPoli.length, 1)}" class="border-b border-slate-100 bg-sky-50 px-2.5 py-1.5 text-center font-bold text-sky-700">Matrículas nuevas Poli</th>
+        <th colspan="${Math.max(aniosMercado.length, 1)}" class="border-b border-slate-100 bg-slate-100 px-2.5 py-1.5 text-center font-bold text-slate-600">Matrículas nuevas mercado SNIES (${sector})</th>
         ${th("", "")}${th("", "")}${th("", "")}${th("", "")}
       </tr>
       <tr>
         ${th("SNIES")}${th("Programa Poli")}${th("Sede")}${th("Nivel")}
-        ${anios.map((a) => th(a, "text-right bg-sky-50/60")).join("")}
-        ${anios.map((a) => th(a, "text-right bg-slate-50")).join("")}
+        ${aniosPoli.length ? aniosPoli.map((a) => th(a, "text-right bg-sky-50/60")).join("") : th("—", "text-right bg-sky-50/60 text-slate-300")}
+        ${aniosMercado.length ? aniosMercado.map((a) => th(a, "text-right bg-slate-50")).join("") : th("—", "text-right bg-slate-50 text-slate-300")}
         ${th("Share Mercado", "text-right")}${th("Share Poli", "text-right")}
         ${th("Crecim. Mercado", "text-right")}${th("Crecim. Poli", "text-right")}
       </tr>
@@ -218,10 +191,13 @@ function renderTabla() {
 
   const rowsHtml = datos
     .map((r) => {
-      const poliCells = anios.map((a) => `<td class="px-2.5 py-1.5 text-right text-slate-600">${num(r.matriculas_poli[a])}</td>`).join("");
-      const mercadoCells = anios
-        .map((a) => `<td class="px-2.5 py-1.5 text-right text-slate-400">${r.matriculas_mercado ? num(r.matriculas_mercado[a]) : "s/d"}</td>`)
-        .join("");
+      const m = r.por_sector[sector];
+      const poliCells = aniosPoli.length
+        ? aniosPoli.map((a) => `<td class="px-2.5 py-1.5 text-right text-slate-600">${num(r.matriculas_poli[a])}</td>`).join("")
+        : `<td class="px-2.5 py-1.5 text-right text-slate-300">…</td>`;
+      const mercadoCells = aniosMercado.length
+        ? aniosMercado.map((a) => `<td class="px-2.5 py-1.5 text-right text-slate-400">${m.matriculas_mercado ? num(m.matriculas_mercado[a]) : "s/d"}</td>`).join("")
+        : `<td class="px-2.5 py-1.5 text-right text-slate-300">…</td>`;
       return `<tr class="odd:bg-white even:bg-slate-50/40 hover:bg-sky-50/60">
         <td class="px-2.5 py-1.5 text-slate-400">${r.codigo_snies_programa}</td>
         <td class="px-2.5 py-1.5 font-medium text-slate-800">${r.programa_academico}</td>
@@ -229,16 +205,16 @@ function renderTabla() {
         <td class="px-2.5 py-1.5 text-slate-500">${r.nivel_academico}</td>
         ${poliCells}
         ${mercadoCells}
-        <td class="px-2.5 py-1.5 text-right font-medium text-slate-700">${pct(r.share_mercado)}</td>
-        <td class="px-2.5 py-1.5 text-right font-medium text-slate-700">${pct(r.share_poli)}</td>
-        <td class="px-2.5 py-1.5 text-right font-medium ${r.crecimiento_mercado < 0 ? "text-rose-600" : "text-emerald-600"}">${pct(r.crecimiento_mercado)}</td>
+        <td class="px-2.5 py-1.5 text-right font-medium text-slate-700">${pct(m.share_mercado)}</td>
+        <td class="px-2.5 py-1.5 text-right font-medium text-slate-700">${pct(m.share_poli)}</td>
+        <td class="px-2.5 py-1.5 text-right font-medium ${m.crecimiento_mercado < 0 ? "text-rose-600" : "text-emerald-600"}">${pct(m.crecimiento_mercado)}</td>
         <td class="px-2.5 py-1.5 text-right font-medium ${r.crecimiento_poli < 0 ? "text-rose-600" : "text-emerald-600"}">${pct(r.crecimiento_poli)}</td>
       </tr>`;
     })
     .join("");
 
   els.tabla.innerHTML = thead + `<tbody>${rowsHtml}</tbody>`;
-  els.metaDatos.textContent = `${datos.length} de ${rows.length} programa(s) del portafolio · año base ${rows[0]?.anio_base ?? "-"}`;
+  els.metaDatos.textContent = `${datos.length} de ${rows.length} programa(s) del portafolio · sector ${sector} · año base ${rows[0]?.anio_base ?? "-"}`;
 }
 
 // ---------- Arranque ----------
@@ -250,8 +226,7 @@ function showApp() {
   chart = chart ?? echarts.init(els.chart);
   window.addEventListener("resize", () => chart.resize());
   activarTab("graficos");
-  renderChart(els.segmento.value);
-  construirSlicers();
+  rerenderChart();
   renderTabla();
 }
 
