@@ -18,6 +18,7 @@ const els = {
   filtroSede: document.getElementById("filtro-sede"),
   filtroNivel: document.getElementById("filtro-nivel"),
   filtroSector: document.getElementById("filtro-sector"),
+  filtroCuadrante: document.getElementById("filtro-cuadrante"),
   togglePoli: document.getElementById("toggle-poli"),
   toggleMercado: document.getElementById("toggle-mercado"),
   tabla: document.getElementById("tabla-datos"),
@@ -189,6 +190,7 @@ els.sectorGraficos.addEventListener("change", rerenderChart);
 els.filtroSede.addEventListener("change", renderTabla);
 els.filtroNivel.addEventListener("change", renderTabla);
 els.filtroSector.addEventListener("change", renderTabla);
+els.filtroCuadrante.addEventListener("change", renderTabla);
 
 function actualizarToggleBtn(btn, expandidoFlag, etiqueta) {
   btn.textContent = `${expandidoFlag ? "▾" : "▸"} ${etiqueta}`;
@@ -227,7 +229,13 @@ function renderTabla() {
   const sede = els.filtroSede.value;
   const nivel = els.filtroNivel.value;
   const sector = els.filtroSector.value;
-  const datos = rows.filter((r) => (!sede || r.sede === sede) && (!nivel || r.nivel_academico === nivel));
+  const cuadrante = els.filtroCuadrante.value;
+  const datos = rows.filter(
+    (r) =>
+      (!sede || r.sede === sede) &&
+      (!nivel || r.nivel_academico === nivel) &&
+      (!cuadrante || r.por_sector[sector].cuadrante === cuadrante)
+  );
 
   const aniosPoli = expandido.poli ? anios : [];
   const aniosMercado = expandido.mercado ? anios : [];
