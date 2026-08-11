@@ -208,17 +208,19 @@ els.toggleMercado.addEventListener("click", () => {
 });
 
 function th(text, extraClass = "") {
-  return `<th class="whitespace-normal border-b border-slate-100 px-1.5 py-1.5 text-left font-semibold leading-tight text-slate-500 ${extraClass}">${text}</th>`;
+  return `<th class="overflow-hidden whitespace-normal border-b border-slate-100 px-1.5 py-1.5 text-left font-semibold leading-tight text-slate-500 ${extraClass}">${text}</th>`;
 }
+
+const COL_ANIO_COLAPSADO = 80;
 
 function colgroup(aniosPoli, aniosMercado) {
   const col = (w) => `<col style="width:${w}px">`;
-  const anioCols = (lista) => (lista.length ? lista.map(() => col(48)).join("") : col(34));
+  const anioCols = (lista) => (lista.length ? lista.map(() => col(48)).join("") : col(COL_ANIO_COLAPSADO));
   return `<colgroup>
-    ${col(50)}${col(200)}${col(60)}${col(58)}
+    ${col(46)}${col(210)}${col(56)}${col(56)}
     ${anioCols(aniosPoli)}
     ${anioCols(aniosMercado)}
-    ${col(72)}${col(64)}${col(78)}${col(70)}${col(112)}
+    ${col(62)}${col(56)}${col(68)}${col(62)}${col(102)}
   </colgroup>`;
 }
 
@@ -245,8 +247,8 @@ function renderTabla() {
     <thead class="sticky top-0 bg-slate-50">
       <tr>
         ${th("", "")}${th("", "")}${th("", "")}${th("", "")}
-        <th colspan="${Math.max(aniosPoli.length, 1)}" class="border-b border-slate-100 bg-sky-50 px-1.5 py-1.5 text-center font-bold text-sky-700">Matrículas Poli</th>
-        <th colspan="${Math.max(aniosMercado.length, 1)}" class="border-b border-slate-100 bg-slate-100 px-1.5 py-1.5 text-center font-bold text-slate-600">Matrículas mercado (${sector})</th>
+        <th colspan="${Math.max(aniosPoli.length, 1)}" class="overflow-hidden whitespace-normal border-b border-slate-100 bg-sky-50 px-1 py-1.5 text-center font-bold leading-tight text-sky-700">${aniosPoli.length ? "Matrículas Poli" : "Poli"}</th>
+        <th colspan="${Math.max(aniosMercado.length, 1)}" class="overflow-hidden whitespace-normal border-b border-slate-100 bg-slate-100 px-1 py-1.5 text-center font-bold leading-tight text-slate-600">${aniosMercado.length ? `Matrículas mercado (${sector})` : "Mercado"}</th>
         ${th("", "")}${th("", "")}${th("", "")}${th("", "")}${th("", "")}
       </tr>
       <tr>
