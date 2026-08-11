@@ -27,9 +27,23 @@ const els = {
 };
 
 let rows = [];
+let cortes = {};
 let chart = null;
 let anios = [];
 let expandido = { poli: false, mercado: false };
+
+const CUADRANTE_INFO = {
+  Estrella: { icon: "⭐", label: "Estrella" },
+  Interrogante: { icon: "❓", label: "Interrogante" },
+  Vaca: { icon: "🐄", label: "Vaca" },
+  Perro: { icon: "🐶", label: "Perro" },
+};
+
+function cuadranteTexto(cuadrante) {
+  if (!cuadrante) return "s/d";
+  const info = CUADRANTE_INFO[cuadrante];
+  return `${info.icon} ${info.label}`;
+}
 
 function pct(x, topado = false) {
   if (x == null) return "s/d";
@@ -61,6 +75,16 @@ els.tabBtns.forEach((b) => b.addEventListener("click", () => activarTab(b.datase
 
 // ---------- Gráficos ----------
 
+function etiquetaCuadrante(icon, label, left, top) {
+  return {
+    type: "text",
+    left,
+    top,
+    style: { text: `${icon} ${label}`, fontSize: 13, fontWeight: "bold", fill: "#94a3b8" },
+    z: 1,
+  };
+}
+
 function renderChart(segmentoActivo, sector) {
   const datos = rows
     .filter((r) => r.segmento === segmentoActivo)
@@ -68,6 +92,7 @@ function renderChart(segmentoActivo, sector) {
     .filter(({ m }) => m.share_mercado != null && m.crecimiento_mercado != null);
 
   const maxTamano = Math.max(1, ...datos.map(({ m }) => m.matriculas_mercado[String(rows[0]?.anio_base)] ?? 0));
+  const corte = cortes[segmentoActivo]?.[sector] ?? {};
 
   const puntos = datos.map(({ r, m }) => ({
     value: [m.share_mercado, m.crecimiento_mercado, m.matriculas_mercado[r.anio_base]],
@@ -79,11 +104,20 @@ function renderChart(segmentoActivo, sector) {
   chart.setOption(
     {
       grid: { left: 70, right: 30, top: 30, bottom: 60 },
+      graphic: {
+        elements: [
+          etiquetaCuadrante("⭐", "Estrella", "13%", "6%"),
+          etiquetaCuadrante("❓", "Interrogante", "78%", "6%"),
+          etiquetaCuadrante("🐄", "Vaca", "13%", "88%"),
+          etiquetaCuadrante("🐶", "Perro", "80%", "88%"),
+        ],
+      },
       tooltip: {
         formatter: (p) => {
           const { r, m } = p.data.raw;
           return `<b>${r.programa_academico}</b><br/>
             Segmento: ${r.segmento} · Sector: ${sector}<br/>
+            Cuadrante: ${cuadranteTexto(m.cuadrante)}<br/>
             Cuota de mercado: ${pct(m.share_mercado)}<br/>
             Crecimiento mercado: ${pct(m.crecimiento_mercado, m.crecimiento_mercado_topado)}<br/>
             Matrículas mercado (${r.anio_base}): ${num(m.matriculas_mercado[r.anio_base])}<br/>
@@ -120,6 +154,16 @@ function renderChart(segmentoActivo, sector) {
           },
           labelLayout: { hideOverlap: true, moveOverlap: "shiftY" },
           emphasis: { focus: "series" },
+          markLine: {
+            silent: true,
+            symbol: "none",
+            lineStyle: { color: "#94a3b8", type: "dashed", width: 1.5 },
+            label: { show: false },
+            data: [
+              ...(corte.share_mediana != null ? [{ xAxis: corte.share_mediana }] : []),
+              ...(corte.crecimiento_mediana != null ? [{ yAxis: corte.crecimiento_mediana }] : []),
+            ],
+          },
         },
       ],
     },
@@ -129,6 +173,7 @@ function renderChart(segmentoActivo, sector) {
   const hayTopados = datos.some(({ m }) => m.crecimiento_mercado_topado);
   els.meta.textContent =
     `${datos.length} programa(s) en "${segmentoActivo}" · sector ${sector} · año base ${rows[0]?.anio_base ?? "-"}` +
+    ` · líneas = mediana del segmento (crecimiento ${pct(corte.crecimiento_mediana)}, share ${pct(corte.share_mediana)})` +
     (hayTopados ? " · * crecimiento real mayor a 100%, mostrado como 100% para no distorsionar la escala" : "");
 }
 
@@ -182,14 +227,14 @@ function renderTabla() {
         ${th("", "")}${th("", "")}${th("", "")}${th("", "")}
         <th colspan="${Math.max(aniosPoli.length, 1)}" class="border-b border-slate-100 bg-sky-50 px-2.5 py-1.5 text-center font-bold text-sky-700">Matrículas nuevas Poli</th>
         <th colspan="${Math.max(aniosMercado.length, 1)}" class="border-b border-slate-100 bg-slate-100 px-2.5 py-1.5 text-center font-bold text-slate-600">Matrículas nuevas mercado SNIES (${sector})</th>
-        ${th("", "")}${th("", "")}${th("", "")}${th("", "")}
+        ${th("", "")}${th("", "")}${th("", "")}${th("", "")}${th("", "")}
       </tr>
       <tr>
         ${th("SNIES")}${th("Programa Poli")}${th("Sede")}${th("Nivel")}
         ${aniosPoli.length ? aniosPoli.map((a) => th(a, "text-right bg-sky-50/60")).join("") : th("—", "text-right bg-sky-50/60 text-slate-300")}
         ${aniosMercado.length ? aniosMercado.map((a) => th(a, "text-right bg-slate-50")).join("") : th("—", "text-right bg-slate-50 text-slate-300")}
         ${th("Share Mercado", "text-right")}${th("Share Poli", "text-right")}
-        ${th("Crecim. Mercado", "text-right")}${th("Crecim. Poli", "text-right")}
+        ${th("Crecim. Mercado", "text-right")}${th("Crecim. Poli", "text-right")}${th("Resultado Mercado")}
       </tr>
     </thead>`;
 
@@ -213,6 +258,7 @@ function renderTabla() {
         <td class="px-2.5 py-1.5 text-right font-medium text-slate-700">${pct(m.share_poli)}</td>
         <td class="px-2.5 py-1.5 text-right font-medium ${m.crecimiento_mercado < 0 ? "text-rose-600" : "text-emerald-600"}">${pct(m.crecimiento_mercado, m.crecimiento_mercado_topado)}</td>
         <td class="px-2.5 py-1.5 text-right font-medium ${r.crecimiento_poli < 0 ? "text-rose-600" : "text-emerald-600"}">${pct(r.crecimiento_poli, r.crecimiento_poli_topado)}</td>
+        <td class="px-2.5 py-1.5 font-medium text-slate-700">${cuadranteTexto(m.cuadrante)}</td>
       </tr>`;
     })
     .join("");
@@ -231,7 +277,7 @@ function renderTabla() {
         <td class="px-2.5 py-2" colspan="4">Subtotal (${datos.length} programa${datos.length === 1 ? "" : "s"})</td>
         ${totalPoliCells}
         ${totalMercadoCells}
-        <td class="px-2.5 py-2" colspan="4"></td>
+        <td class="px-2.5 py-2" colspan="5"></td>
       </tr>
     </tfoot>`;
 
@@ -261,7 +307,9 @@ function showGateError(message) {
 
 async function unlock(key) {
   try {
-    rows = await fetchAndDecrypt(key);
+    const data = await fetchAndDecrypt(key);
+    rows = data.rows;
+    cortes = data.cortes;
   } catch (err) {
     if (err instanceof AuthError) {
       sessionStorage.removeItem(SESSION_KEY);
