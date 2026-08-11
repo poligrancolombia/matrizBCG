@@ -22,7 +22,7 @@
           type="password"
           autofocus
           placeholder="Contraseña"
-          class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 pr-16 text-[13.5px] outline-none focus:border-slate-400 focus:bg-white focus:ring-2 focus:ring-slate-200"
+          class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 pr-16 text-[13.5px] outline-none focus:border-[#1FB2DE] focus:bg-white focus:ring-2 focus:ring-[#1FB2DE]/30"
         />
         <button
           id="toggle-password"
@@ -36,7 +36,7 @@
       <button
         id="gate-submit"
         type="submit"
-        class="mt-5 w-full rounded-xl bg-slate-900 py-2.5 text-[13.5px] font-semibold text-white transition hover:bg-slate-800 disabled:opacity-50"
+        class="mt-5 w-full rounded-xl bg-[#0F385A] py-2.5 text-[13.5px] font-semibold text-white transition hover:bg-[#0c2c47] disabled:opacity-50"
       >
         Entrar
       </button>
@@ -47,12 +47,12 @@
     <header class="mb-4 flex flex-wrap items-end justify-between gap-4">
       <div>
         <img src="./logo.png" alt="Politécnico Grancolombiano — Inteligencia Competitiva" class="mb-2 h-auto max-w-[240px]" />
-        <h1 class="text-xl font-bold text-slate-900">Matriz BCG — Portafolio Poli</h1>
+        <h1 class="text-xl font-bold text-[#0F385A]">Matriz BCG — Portafolio Poli</h1>
         <p class="text-sm text-slate-500">Mercado (SNIES, primer curso) vs. matrícula propia del Poli, por programa del portafolio.</p>
       </div>
       <nav class="flex gap-1 rounded-lg bg-slate-200/70 p-1">
-        <button data-tab="graficos" class="tab-btn rounded-md px-3.5 py-1.5 text-sm font-semibold">Gráficos</button>
-        <button data-tab="datos" class="tab-btn rounded-md px-3.5 py-1.5 text-sm font-semibold">Datos</button>
+        <button data-tab="graficos" class="tab-btn rounded-md px-3.5 py-1.5 text-sm font-semibold text-slate-500 transition">Gráficos</button>
+        <button data-tab="datos" class="tab-btn rounded-md px-3.5 py-1.5 text-sm font-semibold text-slate-500 transition">Datos</button>
       </nav>
     </header>
 
@@ -119,8 +119,8 @@
           </select>
         </label>
         <div class="ml-auto flex gap-2">
-          <button id="toggle-poli" type="button" class="rounded-lg border border-sky-200 bg-sky-50 px-3 py-1.5 text-xs font-semibold text-sky-700">▸ Histórico Poli</button>
-          <button id="toggle-mercado" type="button" class="rounded-lg border border-slate-200 bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-600">▸ Histórico Mercado</button>
+          <button id="toggle-poli" type="button" class="rounded-lg border border-[#1FB2DE]/40 bg-[#1FB2DE]/10 px-3 py-1.5 text-xs font-semibold text-[#0F385A] transition">▸ Histórico Poli</button>
+          <button id="toggle-mercado" type="button" class="rounded-lg border border-[#1FB2DE]/40 bg-[#1FB2DE]/10 px-3 py-1.5 text-xs font-semibold text-[#0F385A] transition">▸ Histórico Mercado</button>
         </div>
       </div>
       <div class="overflow-x-auto rounded-2xl bg-white shadow">

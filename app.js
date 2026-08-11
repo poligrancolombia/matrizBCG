@@ -34,12 +34,15 @@ let chart = null;
 let anios = [];
 let expandido = { poli: false, mercado: false };
 
+const PALETTE = { navy: "#0F385A", cyan: "#1FB2DE", white: "#ffffff" };
+
 const CUADRANTE_INFO = {
-  Estrella: { icon: "⭐", label: "Estrella" },
-  Interrogante: { icon: "❓", label: "Interrogante" },
-  Vaca: { icon: "🐄", label: "Vaca" },
-  Perro: { icon: "🐶", label: "Perro" },
+  Estrella: { icon: "⭐", label: "Estrella", color: "#1FB2DE" },
+  Interrogante: { icon: "❓", label: "Interrogante", color: "#8B5CF6" },
+  Vaca: { icon: "🐄", label: "Vaca", color: "#0F385A" },
+  Perro: { icon: "🐶", label: "Perro", color: "#C2577A" },
 };
+const COLOR_SIN_DATO = "#94A3B8";
 
 function cuadranteTexto(cuadrante) {
   if (!cuadrante) return "s/d";
@@ -67,8 +70,13 @@ async function fetchAndDecrypt(key) {
 // ---------- Tabs ----------
 
 function activarTab(tab) {
-  els.tabBtns.forEach((b) => b.classList.toggle("bg-white", b.dataset.tab === tab));
-  els.tabBtns.forEach((b) => b.classList.toggle("shadow", b.dataset.tab === tab));
+  els.tabBtns.forEach((b) => {
+    const activo = b.dataset.tab === tab;
+    b.classList.toggle("bg-white", activo);
+    b.classList.toggle("shadow", activo);
+    b.classList.toggle("text-[#0F385A]", activo);
+    b.classList.toggle("text-slate-500", !activo);
+  });
   els.tabPanels.forEach((p) => p.classList.toggle("hidden", p.id !== `tab-${tab}`));
   if (tab === "graficos") chart?.resize();
 }
@@ -77,13 +85,25 @@ els.tabBtns.forEach((b) => b.addEventListener("click", () => activarTab(b.datase
 
 // ---------- Gráficos ----------
 
-function etiquetaCuadrante(icon, label, left, top) {
+function badgeCuadrante(cuadrante, corner) {
+  const info = CUADRANTE_INFO[cuadrante];
   return {
     type: "text",
-    left,
-    top,
-    style: { text: `${icon} ${label}`, fontSize: 13, fontWeight: "bold", fill: "#94a3b8" },
-    z: 1,
+    ...corner,
+    style: {
+      text: info.icon,
+      font: "bold 24px 'Segoe UI Emoji', sans-serif",
+      textAlign: "center",
+      textVerticalAlign: "middle",
+      fill: PALETTE.white,
+      backgroundColor: info.color,
+      padding: [13, 13],
+      borderRadius: 26,
+      shadowBlur: 10,
+      shadowColor: "rgba(15,56,90,0.30)",
+      shadowOffsetY: 3,
+    },
+    z: 10,
   };
 }
 
@@ -93,28 +113,43 @@ function renderChart(segmentoActivo, sector) {
     .map((r) => ({ r, m: r.por_sector[sector] }))
     .filter(({ m }) => m.share_mercado != null && m.crecimiento_mercado != null);
 
-  const maxTamano = Math.max(1, ...datos.map(({ m }) => m.matriculas_mercado[String(rows[0]?.anio_base)] ?? 0));
+  const maxCompetidores = Math.max(1, ...datos.map(({ m }) => m.num_competidores ?? 0));
   const corte = cortes[segmentoActivo]?.[sector] ?? {};
+  const hayCortes = corte.share_mediana != null && corte.crecimiento_mediana != null;
 
   const puntos = datos.map(({ r, m }) => ({
-    value: [m.share_mercado, m.crecimiento_mercado, m.matriculas_mercado[r.anio_base]],
+    value: [m.share_mercado, m.crecimiento_mercado, m.num_competidores ?? 0],
     name: r.programa_academico,
-    itemStyle: { color: "#0f385a" },
+    itemStyle: {
+      color: m.cuadrante ? CUADRANTE_INFO[m.cuadrante].color : COLOR_SIN_DATO,
+      borderColor: PALETTE.white,
+      borderWidth: 1.5,
+      shadowBlur: 8,
+      shadowColor: "rgba(15,56,90,0.25)",
+    },
     raw: { r, m },
   }));
 
+  const areaCuadrante = (cuadrante, x1, y1, x2, y2) => [
+    { xAxis: x1, yAxis: y1, itemStyle: { color: CUADRANTE_INFO[cuadrante].color, opacity: 0.07 } },
+    { xAxis: x2, yAxis: y2 },
+  ];
+
   chart.setOption(
     {
-      grid: { left: 70, right: 30, top: 30, bottom: 60 },
+      backgroundColor: PALETTE.white,
+      grid: { left: 74, right: 34, top: 30, bottom: 60 },
       graphic: {
         elements: [
-          etiquetaCuadrante("⭐", "Estrella", "13%", "6%"),
-          etiquetaCuadrante("❓", "Interrogante", "78%", "6%"),
-          etiquetaCuadrante("🐄", "Vaca", "13%", "88%"),
-          etiquetaCuadrante("🐶", "Perro", "80%", "88%"),
+          badgeCuadrante("Estrella", { left: 6, top: 6 }),
+          badgeCuadrante("Interrogante", { right: 6, top: 6 }),
+          badgeCuadrante("Vaca", { left: 6, bottom: 6 }),
+          badgeCuadrante("Perro", { right: 6, bottom: 6 }),
         ],
       },
       tooltip: {
+        borderColor: PALETTE.navy,
+        textStyle: { color: "#1e293b" },
         formatter: (p) => {
           const { r, m } = p.data.raw;
           return `<b>${r.programa_academico}</b><br/>
@@ -131,41 +166,59 @@ function renderChart(segmentoActivo, sector) {
         name: "Cuota de mercado (Alto ← → Bajo)",
         nameLocation: "middle",
         nameGap: 35,
+        nameTextStyle: { color: PALETTE.navy, fontWeight: "bold" },
         inverse: true,
-        axisLabel: { formatter: (v) => pct(v) },
-        splitLine: { show: true },
+        splitNumber: 5,
+        axisLabel: { formatter: (v) => pct(v), color: "#64748b" },
+        axisLine: { lineStyle: { color: "#cbd5e1" } },
+        axisTick: { show: false },
+        splitLine: { show: false },
       },
       yAxis: {
         name: "Tasa de crecimiento de mercado",
         nameLocation: "middle",
-        nameGap: 50,
-        axisLabel: { formatter: (v) => pct(v) },
-        splitLine: { show: true },
+        nameGap: 55,
+        nameTextStyle: { color: PALETTE.navy, fontWeight: "bold" },
+        splitNumber: 5,
+        axisLabel: { formatter: (v) => pct(v), color: "#64748b" },
+        axisLine: { lineStyle: { color: "#cbd5e1" } },
+        axisTick: { show: false },
+        splitLine: { show: false },
       },
       series: [
         {
           type: "scatter",
           data: puntos,
-          symbolSize: (val) => 12 + 48 * Math.sqrt(val[2] / maxTamano),
+          symbolSize: (val) => 16 + 46 * Math.sqrt(val[2] / maxCompetidores),
           label: {
             show: true,
             formatter: (p) => p.data.name,
             position: "top",
             fontSize: 11,
-            color: "#334155",
+            color: PALETTE.navy,
           },
           labelLayout: { hideOverlap: true, moveOverlap: "shiftY" },
           emphasis: { focus: "series" },
-          markLine: {
-            silent: true,
-            symbol: "none",
-            lineStyle: { color: "#94a3b8", type: "dashed", width: 1.5 },
-            label: { show: false },
-            data: [
-              ...(corte.share_mediana != null ? [{ xAxis: corte.share_mediana }] : []),
-              ...(corte.crecimiento_mediana != null ? [{ yAxis: corte.crecimiento_mediana }] : []),
-            ],
-          },
+          markArea: hayCortes
+            ? {
+                silent: true,
+                data: [
+                  areaCuadrante("Estrella", corte.share_mediana, corte.crecimiento_mediana, "max", "max"),
+                  areaCuadrante("Interrogante", "min", corte.crecimiento_mediana, corte.share_mediana, "max"),
+                  areaCuadrante("Vaca", corte.share_mediana, "min", "max", corte.crecimiento_mediana),
+                  areaCuadrante("Perro", "min", "min", corte.share_mediana, corte.crecimiento_mediana),
+                ],
+              }
+            : undefined,
+          markLine: hayCortes
+            ? {
+                silent: true,
+                symbol: "none",
+                lineStyle: { color: PALETTE.navy, type: "solid", width: 2 },
+                label: { show: false },
+                data: [{ xAxis: corte.share_mediana }, { yAxis: corte.crecimiento_mediana }],
+              }
+            : undefined,
         },
       ],
     },
@@ -174,8 +227,8 @@ function renderChart(segmentoActivo, sector) {
 
   const hayTopados = datos.some(({ m }) => m.crecimiento_mercado_topado);
   els.meta.textContent =
-    `${datos.length} programa(s) en "${segmentoActivo}" · sector ${sector} · año base ${rows[0]?.anio_base ?? "-"}` +
-    ` · líneas = mediana del segmento (crecimiento ${pct(corte.crecimiento_mediana)}, share ${pct(corte.share_mediana)})` +
+    `${datos.length} programa(s) en "${segmentoActivo}" · sector ${sector} · año base ${rows[0]?.anio_base ?? "-"} · tamaño de burbuja = # de competidores` +
+    (hayCortes ? ` · líneas = mediana del segmento (crecimiento ${pct(corte.crecimiento_mediana)}, share ${pct(corte.share_mediana)})` : "") +
     (hayTopados ? " · * crecimiento real mayor a 100%, mostrado como 100% para no distorsionar la escala" : "");
 }
 
@@ -195,8 +248,9 @@ els.filtroCuadrante.addEventListener("change", renderTabla);
 
 function actualizarToggleBtn(btn, expandidoFlag, etiqueta) {
   btn.textContent = `${expandidoFlag ? "▾" : "▸"} ${etiqueta}`;
-  btn.classList.toggle("bg-sky-100", expandidoFlag && btn === els.togglePoli);
-  btn.classList.toggle("bg-slate-200", expandidoFlag && btn === els.toggleMercado);
+  btn.classList.toggle("bg-[#1FB2DE]", expandidoFlag);
+  btn.classList.toggle("text-white", expandidoFlag);
+  btn.classList.toggle("border-[#1FB2DE]", expandidoFlag);
 }
 
 els.togglePoli.addEventListener("click", () => {
