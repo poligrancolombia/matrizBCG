@@ -206,7 +206,18 @@ els.toggleMercado.addEventListener("click", () => {
 });
 
 function th(text, extraClass = "") {
-  return `<th class="border-b border-slate-100 px-2.5 py-2 text-left font-semibold text-slate-500 ${extraClass}">${text}</th>`;
+  return `<th class="whitespace-normal border-b border-slate-100 px-1.5 py-1.5 text-left font-semibold leading-tight text-slate-500 ${extraClass}">${text}</th>`;
+}
+
+function colgroup(aniosPoli, aniosMercado) {
+  const col = (w) => `<col style="width:${w}px">`;
+  const anioCols = (lista) => (lista.length ? lista.map(() => col(48)).join("") : col(34));
+  return `<colgroup>
+    ${col(50)}${col(200)}${col(60)}${col(58)}
+    ${anioCols(aniosPoli)}
+    ${anioCols(aniosMercado)}
+    ${col(72)}${col(64)}${col(78)}${col(70)}${col(112)}
+  </colgroup>`;
 }
 
 function renderTabla() {
@@ -222,19 +233,20 @@ function renderTabla() {
   const aniosMercado = expandido.mercado ? anios : [];
 
   const thead = `
+    ${colgroup(aniosPoli, aniosMercado)}
     <thead class="sticky top-0 bg-slate-50">
       <tr>
         ${th("", "")}${th("", "")}${th("", "")}${th("", "")}
-        <th colspan="${Math.max(aniosPoli.length, 1)}" class="border-b border-slate-100 bg-sky-50 px-2.5 py-1.5 text-center font-bold text-sky-700">Matrículas nuevas Poli</th>
-        <th colspan="${Math.max(aniosMercado.length, 1)}" class="border-b border-slate-100 bg-slate-100 px-2.5 py-1.5 text-center font-bold text-slate-600">Matrículas nuevas mercado SNIES (${sector})</th>
+        <th colspan="${Math.max(aniosPoli.length, 1)}" class="border-b border-slate-100 bg-sky-50 px-1.5 py-1.5 text-center font-bold text-sky-700">Matrículas Poli</th>
+        <th colspan="${Math.max(aniosMercado.length, 1)}" class="border-b border-slate-100 bg-slate-100 px-1.5 py-1.5 text-center font-bold text-slate-600">Matrículas mercado (${sector})</th>
         ${th("", "")}${th("", "")}${th("", "")}${th("", "")}${th("", "")}
       </tr>
       <tr>
         ${th("SNIES")}${th("Programa Poli")}${th("Sede")}${th("Nivel")}
         ${aniosPoli.length ? aniosPoli.map((a) => th(a, "text-right bg-sky-50/60")).join("") : th("—", "text-right bg-sky-50/60 text-slate-300")}
         ${aniosMercado.length ? aniosMercado.map((a) => th(a, "text-right bg-slate-50")).join("") : th("—", "text-right bg-slate-50 text-slate-300")}
-        ${th("Share Mercado", "text-right")}${th("Share Poli", "text-right")}
-        ${th("Crecim. Mercado", "text-right")}${th("Crecim. Poli", "text-right")}${th("Resultado Mercado")}
+        ${th("Share Merc.", "text-right")}${th("Share Poli", "text-right")}
+        ${th("Crec. Merc.", "text-right")}${th("Crec. Poli", "text-right")}${th("Resultado")}
       </tr>
     </thead>`;
 
@@ -242,42 +254,42 @@ function renderTabla() {
     .map((r) => {
       const m = r.por_sector[sector];
       const poliCells = aniosPoli.length
-        ? aniosPoli.map((a) => `<td class="px-2.5 py-1.5 text-right text-slate-600">${num(r.matriculas_poli[a])}</td>`).join("")
-        : `<td class="px-2.5 py-1.5 text-right text-slate-300">…</td>`;
+        ? aniosPoli.map((a) => `<td class="px-1.5 py-1 text-right text-slate-600">${num(r.matriculas_poli[a])}</td>`).join("")
+        : `<td class="px-1.5 py-1 text-right text-slate-300">…</td>`;
       const mercadoCells = aniosMercado.length
-        ? aniosMercado.map((a) => `<td class="px-2.5 py-1.5 text-right text-slate-400">${m.matriculas_mercado ? num(m.matriculas_mercado[a]) : "s/d"}</td>`).join("")
-        : `<td class="px-2.5 py-1.5 text-right text-slate-300">…</td>`;
+        ? aniosMercado.map((a) => `<td class="px-1.5 py-1 text-right text-slate-400">${m.matriculas_mercado ? num(m.matriculas_mercado[a]) : "s/d"}</td>`).join("")
+        : `<td class="px-1.5 py-1 text-right text-slate-300">…</td>`;
       return `<tr class="odd:bg-white even:bg-slate-50/40 hover:bg-sky-50/60">
-        <td class="px-2.5 py-1.5 text-slate-400">${r.codigo_snies_programa}</td>
-        <td class="px-2.5 py-1.5 font-medium text-slate-800">${r.programa_academico}</td>
-        <td class="px-2.5 py-1.5 text-slate-500">${r.sede}</td>
-        <td class="px-2.5 py-1.5 text-slate-500">${r.nivel_academico}</td>
+        <td class="truncate px-1.5 py-1 text-slate-400">${r.codigo_snies_programa}</td>
+        <td class="truncate px-1.5 py-1 font-medium text-slate-800" title="${r.programa_academico}">${r.programa_academico}</td>
+        <td class="truncate px-1.5 py-1 text-slate-500">${r.sede}</td>
+        <td class="truncate px-1.5 py-1 text-slate-500">${r.nivel_academico}</td>
         ${poliCells}
         ${mercadoCells}
-        <td class="px-2.5 py-1.5 text-right font-medium text-slate-700">${pct(m.share_mercado)}</td>
-        <td class="px-2.5 py-1.5 text-right font-medium text-slate-700">${pct(m.share_poli)}</td>
-        <td class="px-2.5 py-1.5 text-right font-medium ${m.crecimiento_mercado < 0 ? "text-rose-600" : "text-emerald-600"}">${pct(m.crecimiento_mercado, m.crecimiento_mercado_topado)}</td>
-        <td class="px-2.5 py-1.5 text-right font-medium ${r.crecimiento_poli < 0 ? "text-rose-600" : "text-emerald-600"}">${pct(r.crecimiento_poli, r.crecimiento_poli_topado)}</td>
-        <td class="px-2.5 py-1.5 font-medium text-slate-700">${cuadranteTexto(m.cuadrante)}</td>
+        <td class="px-1.5 py-1 text-right font-medium text-slate-700">${pct(m.share_mercado)}</td>
+        <td class="px-1.5 py-1 text-right font-medium text-slate-700">${pct(m.share_poli)}</td>
+        <td class="px-1.5 py-1 text-right font-medium ${m.crecimiento_mercado < 0 ? "text-rose-600" : "text-emerald-600"}">${pct(m.crecimiento_mercado, m.crecimiento_mercado_topado)}</td>
+        <td class="px-1.5 py-1 text-right font-medium ${r.crecimiento_poli < 0 ? "text-rose-600" : "text-emerald-600"}">${pct(r.crecimiento_poli, r.crecimiento_poli_topado)}</td>
+        <td class="truncate px-1.5 py-1 font-medium text-slate-700">${cuadranteTexto(m.cuadrante)}</td>
       </tr>`;
     })
     .join("");
 
   const totalPoliCells = aniosPoli.length
-    ? aniosPoli.map((a) => `<td class="px-2.5 py-1.5 text-right text-sky-800">${num(datos.reduce((acc, r) => acc + Number(r.matriculas_poli[a] ?? 0), 0))}</td>`).join("")
-    : `<td class="px-2.5 py-1.5 text-right text-slate-300">…</td>`;
+    ? aniosPoli.map((a) => `<td class="px-1.5 py-1 text-right text-sky-800">${num(datos.reduce((acc, r) => acc + Number(r.matriculas_poli[a] ?? 0), 0))}</td>`).join("")
+    : `<td class="px-1.5 py-1 text-right text-slate-300">…</td>`;
   const totalMercadoCells = aniosMercado.length
     ? aniosMercado
-        .map((a) => `<td class="px-2.5 py-1.5 text-right text-slate-700">${num(datos.reduce((acc, r) => acc + Number(r.por_sector[sector].matriculas_mercado?.[a] ?? 0), 0))}</td>`)
+        .map((a) => `<td class="px-1.5 py-1 text-right text-slate-700">${num(datos.reduce((acc, r) => acc + Number(r.por_sector[sector].matriculas_mercado?.[a] ?? 0), 0))}</td>`)
         .join("")
-    : `<td class="px-2.5 py-1.5 text-right text-slate-300">…</td>`;
+    : `<td class="px-1.5 py-1 text-right text-slate-300">…</td>`;
   const tfoot = `
     <tfoot>
       <tr class="border-t-2 border-slate-300 bg-slate-100 font-semibold">
-        <td class="px-2.5 py-2" colspan="4">Subtotal (${datos.length} programa${datos.length === 1 ? "" : "s"})</td>
+        <td class="truncate px-1.5 py-1.5" colspan="4">Subtotal (${datos.length})</td>
         ${totalPoliCells}
         ${totalMercadoCells}
-        <td class="px-2.5 py-2" colspan="5"></td>
+        <td class="px-1.5 py-1.5" colspan="5"></td>
       </tr>
     </tfoot>`;
 
