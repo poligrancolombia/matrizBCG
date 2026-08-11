@@ -8,6 +8,7 @@ const els = {
   gate: document.getElementById("gate"),
   gateForm: document.getElementById("gate-form"),
   password: document.getElementById("password"),
+  togglePassword: document.getElementById("toggle-password"),
   gateError: document.getElementById("gate-error"),
   gateSubmit: document.getElementById("gate-submit"),
   app: document.getElementById("app"),
@@ -351,6 +352,12 @@ async function unlock(key) {
   sessionStorage.setItem(SESSION_KEY, await exportKeyToB64(key));
   showApp();
 }
+
+els.togglePassword.addEventListener("click", () => {
+  const mostrando = els.password.type === "text";
+  els.password.type = mostrando ? "password" : "text";
+  els.togglePassword.textContent = mostrando ? "Mostrar" : "Ocultar";
+});
 
 els.gateForm.addEventListener("submit", async (e) => {
   e.preventDefault();
