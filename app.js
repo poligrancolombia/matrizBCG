@@ -220,7 +220,7 @@ function colgroup(aniosPoli, aniosMercado) {
     ${col(46)}${col(210)}${col(56)}${col(56)}
     ${anioCols(aniosPoli)}
     ${anioCols(aniosMercado)}
-    ${col(62)}${col(56)}${col(68)}${col(62)}${col(102)}
+    ${col(58)}${col(52)}${col(64)}${col(58)}${col(90)}${col(90)}
   </colgroup>`;
 }
 
@@ -249,14 +249,14 @@ function renderTabla() {
         ${th("", "")}${th("", "")}${th("", "")}${th("", "")}
         <th colspan="${Math.max(aniosPoli.length, 1)}" class="overflow-hidden whitespace-normal border-b border-slate-100 bg-sky-50 px-1 py-1.5 text-center font-bold leading-tight text-sky-700">${aniosPoli.length ? "Matrículas Poli" : "Poli"}</th>
         <th colspan="${Math.max(aniosMercado.length, 1)}" class="overflow-hidden whitespace-normal border-b border-slate-100 bg-slate-100 px-1 py-1.5 text-center font-bold leading-tight text-slate-600">${aniosMercado.length ? `Matrículas mercado (${sector})` : "Mercado"}</th>
-        ${th("", "")}${th("", "")}${th("", "")}${th("", "")}${th("", "")}
+        ${th("", "")}${th("", "")}${th("", "")}${th("", "")}${th("", "")}${th("", "")}
       </tr>
       <tr>
         ${th("SNIES")}${th("Programa Poli")}${th("Sede")}${th("Nivel")}
         ${aniosPoli.length ? aniosPoli.map((a) => th(a, "text-right bg-sky-50/60")).join("") : th("—", "text-right bg-sky-50/60 text-slate-300")}
         ${aniosMercado.length ? aniosMercado.map((a) => th(a, "text-right bg-slate-50")).join("") : th("—", "text-right bg-slate-50 text-slate-300")}
         ${th("Share Merc.", "text-right")}${th("Share Poli", "text-right")}
-        ${th("Crec. Merc.", "text-right")}${th("Crec. Poli", "text-right")}${th("Resultado")}
+        ${th("Crec. Merc.", "text-right")}${th("Crec. Poli", "text-right")}${th("Result. Merc.")}${th("Result. Poli")}
       </tr>
     </thead>`;
 
@@ -281,6 +281,7 @@ function renderTabla() {
         <td class="px-1.5 py-1 text-right font-medium ${m.crecimiento_mercado < 0 ? "text-rose-600" : "text-emerald-600"}">${pct(m.crecimiento_mercado, m.crecimiento_mercado_topado)}</td>
         <td class="px-1.5 py-1 text-right font-medium ${r.crecimiento_poli < 0 ? "text-rose-600" : "text-emerald-600"}">${pct(r.crecimiento_poli, r.crecimiento_poli_topado)}</td>
         <td class="truncate px-1.5 py-1 font-medium text-slate-700">${cuadranteTexto(m.cuadrante)}</td>
+        <td class="truncate px-1.5 py-1 font-medium text-slate-700">${cuadranteTexto(m.cuadrante_poli)}</td>
       </tr>`;
     })
     .join("");
@@ -299,7 +300,7 @@ function renderTabla() {
         <td class="truncate px-1.5 py-1.5" colspan="4">Subtotal (${datos.length})</td>
         ${totalPoliCells}
         ${totalMercadoCells}
-        <td class="px-1.5 py-1.5" colspan="5"></td>
+        <td class="px-1.5 py-1.5" colspan="6"></td>
       </tr>
     </tfoot>`;
 
