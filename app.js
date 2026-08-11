@@ -213,7 +213,25 @@ function renderTabla() {
     })
     .join("");
 
-  els.tabla.innerHTML = thead + `<tbody>${rowsHtml}</tbody>`;
+  const totalPoliCells = aniosPoli.length
+    ? aniosPoli.map((a) => `<td class="px-2.5 py-1.5 text-right text-sky-800">${num(datos.reduce((acc, r) => acc + Number(r.matriculas_poli[a] ?? 0), 0))}</td>`).join("")
+    : `<td class="px-2.5 py-1.5 text-right text-slate-300">…</td>`;
+  const totalMercadoCells = aniosMercado.length
+    ? aniosMercado
+        .map((a) => `<td class="px-2.5 py-1.5 text-right text-slate-700">${num(datos.reduce((acc, r) => acc + Number(r.por_sector[sector].matriculas_mercado?.[a] ?? 0), 0))}</td>`)
+        .join("")
+    : `<td class="px-2.5 py-1.5 text-right text-slate-300">…</td>`;
+  const tfoot = `
+    <tfoot>
+      <tr class="border-t-2 border-slate-300 bg-slate-100 font-semibold">
+        <td class="px-2.5 py-2" colspan="4">Subtotal (${datos.length} programa${datos.length === 1 ? "" : "s"})</td>
+        ${totalPoliCells}
+        ${totalMercadoCells}
+        <td class="px-2.5 py-2" colspan="4"></td>
+      </tr>
+    </tfoot>`;
+
+  els.tabla.innerHTML = thead + `<tbody>${rowsHtml}</tbody>` + tfoot;
   els.metaDatos.textContent = `${datos.length} de ${rows.length} programa(s) del portafolio · sector ${sector} · año base ${rows[0]?.anio_base ?? "-"}`;
 }
 
