@@ -294,6 +294,7 @@ function renderTabla() {
         .map((a) => `<td class="px-1.5 py-1 text-right text-slate-700">${num(datos.reduce((acc, r) => acc + Number(r.por_sector[sector].matriculas_mercado?.[a] ?? 0), 0))}</td>`)
         .join("")
     : `<td class="px-1.5 py-1 text-right text-slate-300">…</td>`;
+  const totalColumnas = 4 + Math.max(aniosPoli.length, 1) + Math.max(aniosMercado.length, 1) + 6;
   const tfoot = `
     <tfoot>
       <tr class="border-t-2 border-slate-300 bg-slate-100 font-semibold">
@@ -301,6 +302,11 @@ function renderTabla() {
         ${totalPoliCells}
         ${totalMercadoCells}
         <td class="px-1.5 py-1.5" colspan="6"></td>
+      </tr>
+      <tr>
+        <td colspan="${totalColumnas}" class="px-1.5 py-1.5 text-[10px] font-normal italic text-slate-400">
+          * Dato de mercado ajustado: se restaron 5.000 matrículas de 2025 al SNIES 107620 (Universidad Iberoamericana) por un valor atípico dentro de la competencia de "Maestría en Innovación Educativa" (grupo homólogo 110425, Posgrado Virtual) — reportaba 6.532 frente a un siguiente competidor más alto de 2.208.
+        </td>
       </tr>
     </tfoot>`;
 
