@@ -31,8 +31,9 @@ let chart = null;
 let anios = [];
 let expandido = { poli: false, mercado: false };
 
-function pct(x) {
-  return x == null ? "s/d" : `${(x * 100).toFixed(1)}%`;
+function pct(x, topado = false) {
+  if (x == null) return "s/d";
+  return `${(x * 100).toFixed(1)}%${topado ? "*" : ""}`;
 }
 
 function num(x) {
@@ -84,7 +85,7 @@ function renderChart(segmentoActivo, sector) {
           return `<b>${r.programa_academico}</b><br/>
             Segmento: ${r.segmento} · Sector: ${sector}<br/>
             Cuota de mercado: ${pct(m.share_mercado)}<br/>
-            Crecimiento mercado: ${pct(m.crecimiento_mercado)}<br/>
+            Crecimiento mercado: ${pct(m.crecimiento_mercado, m.crecimiento_mercado_topado)}<br/>
             Matrículas mercado (${r.anio_base}): ${num(m.matriculas_mercado[r.anio_base])}<br/>
             Matrículas Poli (${r.anio_base}): ${num(r.matriculas_poli[r.anio_base])}<br/>
             Competidores homologados: ${num(m.num_competidores)}`;
@@ -125,7 +126,10 @@ function renderChart(segmentoActivo, sector) {
     true
   );
 
-  els.meta.textContent = `${datos.length} programa(s) en "${segmentoActivo}" · sector ${sector} · año base ${rows[0]?.anio_base ?? "-"}`;
+  const hayTopados = datos.some(({ m }) => m.crecimiento_mercado_topado);
+  els.meta.textContent =
+    `${datos.length} programa(s) en "${segmentoActivo}" · sector ${sector} · año base ${rows[0]?.anio_base ?? "-"}` +
+    (hayTopados ? " · * crecimiento real mayor a 100%, mostrado como 100% para no distorsionar la escala" : "");
 }
 
 function rerenderChart() {
@@ -207,8 +211,8 @@ function renderTabla() {
         ${mercadoCells}
         <td class="px-2.5 py-1.5 text-right font-medium text-slate-700">${pct(m.share_mercado)}</td>
         <td class="px-2.5 py-1.5 text-right font-medium text-slate-700">${pct(m.share_poli)}</td>
-        <td class="px-2.5 py-1.5 text-right font-medium ${m.crecimiento_mercado < 0 ? "text-rose-600" : "text-emerald-600"}">${pct(m.crecimiento_mercado)}</td>
-        <td class="px-2.5 py-1.5 text-right font-medium ${r.crecimiento_poli < 0 ? "text-rose-600" : "text-emerald-600"}">${pct(r.crecimiento_poli)}</td>
+        <td class="px-2.5 py-1.5 text-right font-medium ${m.crecimiento_mercado < 0 ? "text-rose-600" : "text-emerald-600"}">${pct(m.crecimiento_mercado, m.crecimiento_mercado_topado)}</td>
+        <td class="px-2.5 py-1.5 text-right font-medium ${r.crecimiento_poli < 0 ? "text-rose-600" : "text-emerald-600"}">${pct(r.crecimiento_poli, r.crecimiento_poli_topado)}</td>
       </tr>`;
     })
     .join("");
