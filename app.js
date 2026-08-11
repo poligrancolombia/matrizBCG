@@ -107,7 +107,24 @@ function badgeCuadrante(cuadrante, corner) {
   };
 }
 
+// En estos segmentos la mayoría de programas tiene un share muy bajo,
+// amontonados contra el borde -- se comprime el lado de share alto
+// (Estrella/Vaca, pocos programas, ya bien separados) y se expande el lado
+// de share bajo (Interrogante/Perro) con una escala raíz cuadrada del eje X,
+// para separar visualmente los puntos que antes se pisaban. La mediana no
+// se mueve de sitio, pero al ya no ser lineal, el lado bajo-share queda con
+// más resolución visual sin tocar la escala real de los datos.
+const SEGMENTOS_EJE_COMPRIMIDO = new Set(["Pregrado Virtual", "Posgrado Virtual"]);
+
+function escalarShare(share, comprimido) {
+  return comprimido ? Math.sqrt(Math.max(0, share)) : share;
+}
+function desescalarShare(valorEje, comprimido) {
+  return comprimido ? valorEje * valorEje : valorEje;
+}
+
 function renderChart(segmentoActivo, sector) {
+  const comprimido = SEGMENTOS_EJE_COMPRIMIDO.has(segmentoActivo);
   const datos = rows
     .filter((r) => r.segmento === segmentoActivo)
     .map((r) => ({ r, m: r.por_sector[sector] }))
@@ -116,9 +133,10 @@ function renderChart(segmentoActivo, sector) {
   const maxCompetidores = Math.max(1, ...datos.map(({ m }) => m.num_competidores ?? 0));
   const corte = cortes[segmentoActivo]?.[sector] ?? {};
   const hayCortes = corte.share_mediana != null && corte.crecimiento_mediana != null;
+  const shareMedianaEscalada = hayCortes ? escalarShare(corte.share_mediana, comprimido) : null;
 
   const puntos = datos.map(({ r, m }) => ({
-    value: [m.share_mercado, m.crecimiento_mercado, m.num_competidores ?? 0],
+    value: [escalarShare(m.share_mercado, comprimido), m.crecimiento_mercado, m.num_competidores ?? 0],
     name: r.programa_academico,
     itemStyle: {
       color: m.cuadrante ? CUADRANTE_INFO[m.cuadrante].color : COLOR_SIN_DATO,
@@ -169,7 +187,7 @@ function renderChart(segmentoActivo, sector) {
         nameTextStyle: { color: PALETTE.navy, fontWeight: "bold" },
         inverse: true,
         splitNumber: 5,
-        axisLabel: { formatter: (v) => pct(v), color: "#64748b" },
+        axisLabel: { formatter: (v) => pct(desescalarShare(v, comprimido)), color: "#64748b" },
         axisLine: { lineStyle: { color: "#cbd5e1" } },
         axisTick: { show: false },
         splitLine: { show: false },
@@ -203,10 +221,10 @@ function renderChart(segmentoActivo, sector) {
             ? {
                 silent: true,
                 data: [
-                  areaCuadrante("Estrella", corte.share_mediana, corte.crecimiento_mediana, "max", "max"),
-                  areaCuadrante("Interrogante", "min", corte.crecimiento_mediana, corte.share_mediana, "max"),
-                  areaCuadrante("Vaca", corte.share_mediana, "min", "max", corte.crecimiento_mediana),
-                  areaCuadrante("Perro", "min", "min", corte.share_mediana, corte.crecimiento_mediana),
+                  areaCuadrante("Estrella", shareMedianaEscalada, corte.crecimiento_mediana, "max", "max"),
+                  areaCuadrante("Interrogante", "min", corte.crecimiento_mediana, shareMedianaEscalada, "max"),
+                  areaCuadrante("Vaca", shareMedianaEscalada, "min", "max", corte.crecimiento_mediana),
+                  areaCuadrante("Perro", "min", "min", shareMedianaEscalada, corte.crecimiento_mediana),
                 ],
               }
             : undefined,
@@ -216,7 +234,7 @@ function renderChart(segmentoActivo, sector) {
                 symbol: "none",
                 lineStyle: { color: PALETTE.navy, type: "solid", width: 2 },
                 label: { show: false },
-                data: [{ xAxis: corte.share_mediana }, { yAxis: corte.crecimiento_mediana }],
+                data: [{ xAxis: shareMedianaEscalada }, { yAxis: corte.crecimiento_mediana }],
               }
             : undefined,
         },
