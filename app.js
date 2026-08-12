@@ -22,6 +22,7 @@ const els = {
   filtroCuadrante: document.getElementById("filtro-cuadrante"),
   togglePoli: document.getElementById("toggle-poli"),
   toggleMercado: document.getElementById("toggle-mercado"),
+  descargarExcel: document.getElementById("descargar-excel"),
   tabla: document.getElementById("tabla-datos"),
   metaDatos: document.getElementById("meta-datos"),
   tabBtns: [...document.querySelectorAll(".tab-btn")],
@@ -263,6 +264,44 @@ els.filtroSede.addEventListener("change", renderTabla);
 els.filtroNivel.addEventListener("change", renderTabla);
 els.filtroSector.addEventListener("change", renderTabla);
 els.filtroCuadrante.addEventListener("change", renderTabla);
+
+const SECTORES_EXPORT = ["Privado", "Oficial", "Todos"];
+
+function filaExport(r, sector) {
+  const m = r.por_sector[sector];
+  const pctVal = (v) => (v == null ? null : Math.round(v * 1000) / 10);
+  const fila = {
+    SNIES: r.codigo_snies_programa,
+    "Programa Poli": r.programa_academico,
+    Sede: r.sede,
+    Nivel: r.nivel_academico,
+    Segmento: r.segmento,
+  };
+  for (const a of r.anios) fila[`Poli ${a}`] = r.matriculas_poli[a];
+  for (const a of r.anios) fila[`Mercado ${a}`] = m.matriculas_mercado ? m.matriculas_mercado[a] : null;
+  fila["Competidores"] = m.num_competidores;
+  fila["Share Mercado %"] = pctVal(m.share_mercado);
+  fila["Share Poli %"] = pctVal(m.share_poli);
+  fila["Crecimiento Mercado %"] = pctVal(m.crecimiento_mercado);
+  fila["Crecimiento Mercado topado"] = m.crecimiento_mercado_topado ? "sí" : "no";
+  fila["Crecimiento Poli %"] = pctVal(r.crecimiento_poli);
+  fila["Crecimiento Poli topado"] = r.crecimiento_poli_topado ? "sí" : "no";
+  fila["Resultado Mercado"] = m.cuadrante ?? "";
+  fila["Resultado Poli"] = m.cuadrante_poli ?? "";
+  return fila;
+}
+
+function exportarExcel() {
+  const wb = XLSX.utils.book_new();
+  for (const sector of SECTORES_EXPORT) {
+    const ws = XLSX.utils.json_to_sheet(rows.map((r) => filaExport(r, sector)));
+    XLSX.utils.book_append_sheet(wb, ws, sector);
+  }
+  const fecha = new Date().toISOString().slice(0, 10);
+  XLSX.writeFile(wb, `matriz_bcg_poli_${fecha}.xlsx`);
+}
+
+els.descargarExcel.addEventListener("click", exportarExcel);
 
 function actualizarToggleBtn(btn, expandidoFlag, etiqueta) {
   btn.textContent = `${expandidoFlag ? "▾" : "▸"} ${etiqueta}`;
