@@ -443,7 +443,66 @@ function showGateError(message) {
   els.gateError.textContent = message;
   els.gateError.classList.remove("hidden");
   els.gateSubmit.disabled = false;
+  els.password.disabled = false;
   els.gateSubmit.textContent = "Entrar";
+}
+
+// ---------- Acceso por enlace con token (igual patrón que Market Share) ----------
+//
+// El enlace lleva un TOKEN en el fragmento de la URL: .../#T=<token>. El
+// token no descifra nada por sí mismo: se cambia por la contraseña vigente
+// llamando a la Cloud Function `getkeyBcg` (ver functions/index.js), vía la
+// reescritura de Hosting /api/getkey -- mismo origen, sin CORS de por medio.
+// Se usa el fragmento y no un parámetro porque el fragmento nunca se envía
+// al servidor: no queda en registros de acceso ni en el Referer.
+const HASH_KEY = "T";
+const ENDPOINT_LLAVE = "/api/getkey";
+
+function tokenFromHash() {
+  const hash = window.location.hash.replace(/^#/, "");
+  // se parsea a mano en vez de con URLSearchParams: este convierte "+" en
+  // espacio, y un token con "+" se rompería sin que nada avise.
+  const match = hash.match(new RegExp(`(?:^|&)${HASH_KEY}=([^&]*)`));
+  if (!match) return null;
+  try {
+    return decodeURIComponent(match[1]) || null;
+  } catch {
+    return match[1] || null;
+  }
+}
+
+// Cambia el token por la contraseña vigente. Devuelve null ante cualquier
+// fallo (token revocado, función caída, sin red) para caer al formulario de
+// siempre en vez de dejar la página bloqueada.
+async function pedirContrasena(token) {
+  try {
+    const res = await fetch(ENDPOINT_LLAVE, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token }),
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data?.password ?? null;
+  } catch {
+    return null;
+  }
+}
+
+// borra el #T=... de la barra de direcciones una vez leído, para que el
+// token no quede a la vista ni en el historial de quien abra el enlace
+// directo. La llave ya queda derivada en memoria y en sessionStorage, así
+// que recargar la página sigue funcionando sin volver a pedirla.
+function limpiarHash() {
+  if (!window.location.hash) return;
+  window.history.replaceState(null, "", window.location.pathname + window.location.search);
+}
+
+function mostrarEntrandoPorEnlace() {
+  els.gateError.classList.add("hidden");
+  els.gateSubmit.disabled = true;
+  els.password.disabled = true;
+  els.gateSubmit.textContent = "Entrando…";
 }
 
 async function unlock(key) {
@@ -481,11 +540,30 @@ els.gateForm.addEventListener("submit", async (e) => {
 
 (async function init() {
   const stored = sessionStorage.getItem(SESSION_KEY);
-  if (!stored) return;
-  try {
-    const key = await importKeyFromB64(stored);
-    await unlock(key);
-  } catch {
-    sessionStorage.removeItem(SESSION_KEY);
+  if (stored) {
+    limpiarHash();
+    try {
+      const key = await importKeyFromB64(stored);
+      await unlock(key);
+    } catch {
+      sessionStorage.removeItem(SESSION_KEY);
+    }
+    return;
   }
+
+  const token = tokenFromHash();
+  if (!token) return;
+  limpiarHash();
+  mostrarEntrandoPorEnlace();
+  const contrasena = await pedirContrasena(token);
+  if (!contrasena) {
+    // token revocado, vencido, o la función no respondió -- se cae al
+    // formulario de siempre en vez de dejar "Entrando…" para siempre.
+    els.gateSubmit.disabled = false;
+    els.password.disabled = false;
+    els.gateSubmit.textContent = "Entrar";
+    return;
+  }
+  const key = await deriveKey(contrasena);
+  await unlock(key);
 })();

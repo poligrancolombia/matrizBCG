@@ -1,0 +1,15 @@
+{
+  "projects": {
+    "default": "market-share-503713"
+  },
+  "targets": {
+    "market-share-503713": {
+      "hosting": {
+        "bcg": [
+          "bcg-matrix-poli"
+        ]
+      }
+    }
+  },
+  "etags": {}
+}

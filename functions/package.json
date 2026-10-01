@@ -1,0 +1,10 @@
+{
+  "name": "functions",
+  "description": "Entrega la llave de descifrado a los enlaces autorizados por token (Matriz BCG)",
+  "private": true,
+  "engines": { "node": "22" },
+  "main": "index.js",
+  "dependencies": {
+    "firebase-functions": "^6.1.0"
+  }
+}

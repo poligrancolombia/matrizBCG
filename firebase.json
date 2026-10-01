@@ -1,0 +1,24 @@
+{
+  "functions": [
+    {
+      "source": "functions",
+      "codebase": "bcg",
+      "ignore": ["node_modules", ".git", "*.local"]
+    }
+  ],
+  "hosting": {
+    "target": "bcg",
+    "public": ".",
+    "ignore": ["firebase.json", "**/.*", ".git/**", "functions/**", "functions/node_modules/**"],
+    "rewrites": [
+      { "source": "/api/getkey", "function": "getkeyBcg", "region": "us-central1" },
+      { "source": "**", "destination": "/index.html" }
+    ],
+    "headers": [
+      {
+        "source": "**",
+        "headers": [{ "key": "Cache-Control", "value": "no-cache, max-age=0" }]
+      }
+    ]
+  }
+}
