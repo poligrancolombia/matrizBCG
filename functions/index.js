@@ -26,8 +26,8 @@ const ACCESO = defineSecret("BCG_MATRIX_ACCESO");
 // -- curl manda el Origin que quiera -- pero evita que otra página web use la
 // función desde el navegador de un tercero.
 const ORIGENES = [
-  "https://bcg-matrix-poli.web.app",
-  "https://bcg-matrix-poli.firebaseapp.com",
+  "https://bcg-matriz-poli.web.app",
+  "https://bcg-matriz-poli.firebaseapp.com",
   "http://localhost:8090",
 ];
 
